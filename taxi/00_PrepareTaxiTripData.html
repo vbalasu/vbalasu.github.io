@@ -11841,11 +11841,11 @@ sample = pd.read_csv(&#39;taxiJul.csv&#39;,nrows=10)
 <p>First, load the taxi trip data (CSV) by choosing Layer -&gt; Add Layer -&gt; Add Delimited Text Layer</p>
 <p><img alt="QGIS Add CSV Layer" src="QGISAddCSVLayer.png" width="600"></p>
 <p>Next, load the taxi zone shapefile by choosing Layer -&gt; Add Layer -&gt; Add Vector Layer</p>
-<p><img alt="QGIS Add Vector Layer" src="QGISAddVectorLayer.png" width="300"></p>
+<p><img alt="QGIS Add Vector Layer" src="QGISAddVectorLayer.PNG" width="300"></p>
 <p>Now save this using the WGS84 coordinate reference system. In order to successfully join the information, the two vectors must use the same “Coordinate Reference System”. Use EPSG:4326, WGS84 to represent latitudes and longitudes. In this example, the taxi trip data was already tagged with latitudes and longitudes, so simply select WGS84 as the CRS. For the taxi zones, Select the layer, Choose SAVE AS and save it using the WGS84 CRS.</p>
 <p><img alt="QGIS Save Vector As WGS84" src="QGISSaveVectorAsWGS84.PNG" width="300"></p>
 <p>You then go to Vector -&gt; Data Management Tools -&gt; Join attributes by location to perform a spatial join. Select “within” as the join operator.</p>
-<p><img alt="QGIS Spatial Join" src="QGISSpatialJoin.png" width="600"></p>
+<p><img alt="QGIS Spatial Join" src="QGISSpatialJoin.PNG" width="600"></p>
 <p>QGIS is a powerful data visualization tool, and has a lot of options for handling formatting, labels, colors, etc.</p>
 <h4 id="Store-the-output">Store the output<a class="anchor-link" href="#Store-the-output">&#182;</a></h4><p>Store the result as a CSV file named 'taxiJul_enh2.csv', which we will import into a database in the next step</p>
 

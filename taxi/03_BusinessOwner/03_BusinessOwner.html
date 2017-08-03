@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" />
-<title>01_Tourist_Resident</title>
+<title>03_BusinessOwner</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
@@ -11751,9 +11751,10 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="1-Tourist-or-Resident-Perspective">1 Tourist or Resident Perspective<a class="anchor-link" href="#1-Tourist-or-Resident-Perspective">&#182;</a></h1><p>In this notebook, we will analyze the taxi data from the perspective of a tourist or resident who wants to explore interesting parts of the city.</p>
-<p>Taxi dropoffs are used as a proxy for the "popularity" of a given location. We will rank-order the taxi zones contained in the data by popularity at various times of the day and week.</p>
-<p>We will then visualize the data using Excel and Tableau using interactive charts.</p>
+<h1 id="3-Business-Owner-Perspective">3 Business Owner Perspective<a class="anchor-link" href="#3-Business-Owner-Perspective">&#182;</a></h1><p>In this notebook, we will analyze the taxi data from the perspective of a business owner who is interested in establishing a retail outlet in New York City. The business owner wants to determine the optimal store location, ideally on a busy street that receives a lot of taxi traffic.</p>
+<p>We will start with a bird's eye view of Manhattan, and examine general taxi traffic on a map that ranks the various taxi zones based on dropoffs. We will use this view to pick a general neighborhood.</p>
+<p>Once we pick the general zone we want to be in, we will get down to the street level. We will construct a detailed street map with individual dropoffs plotted on it.</p>
+<p>Then, we will use machine learning to discover hotspots of activity. This will be achieved by applying a clustering algorithm (unsupervised machine learning) to Latitude and Longitude information contained in the data. The resulting clusters will become the short list of potential locations for the business owner's new store!</p>
 
 </div>
 </div>
@@ -11761,6 +11762,1003 @@ div#notebook {
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#The bird&#39;s eye view is constructed by using summarizing the data by dropoff zone, then visualizing it using QGIS</span>
+<span class="c1">#We have already summarized the data by dropoff zone in Step 1, so we will pull in that information here.</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;../01_Tourist_Resident/01_Tourist_Resident.csv&#39;</span><span class="p">)</span>
+<span class="n">df</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">Out[1]:</div>
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>ROWID</th>
+      <th>dropoff_zone</th>
+      <th>do_weekday</th>
+      <th>do_hour</th>
+      <th>ridecount</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>Midtown Center</td>
+      <td>Wednesday</td>
+      <td>7.0</td>
+      <td>10075</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>Midtown Center</td>
+      <td>Thursday</td>
+      <td>7.0</td>
+      <td>9825</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>Midtown Center</td>
+      <td>Wednesday</td>
+      <td>8.0</td>
+      <td>9466</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>Midtown Center</td>
+      <td>Thursday</td>
+      <td>8.0</td>
+      <td>9289</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>Midtown Center</td>
+      <td>Wednesday</td>
+      <td>9.0</td>
+      <td>7932</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>5</td>
+      <td>Midtown Center</td>
+      <td>Tuesday</td>
+      <td>7.0</td>
+      <td>7920</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>6</td>
+      <td>Midtown East</td>
+      <td>Wednesday</td>
+      <td>8.0</td>
+      <td>7603</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>7</td>
+      <td>Midtown Center</td>
+      <td>Thursday</td>
+      <td>9.0</td>
+      <td>7515</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>8</td>
+      <td>Midtown East</td>
+      <td>Wednesday</td>
+      <td>7.0</td>
+      <td>7372</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>9</td>
+      <td>Midtown Center</td>
+      <td>Tuesday</td>
+      <td>8.0</td>
+      <td>7367</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>10</td>
+      <td>Midtown East</td>
+      <td>Thursday</td>
+      <td>8.0</td>
+      <td>7291</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>11</td>
+      <td>Midtown Center</td>
+      <td>Monday</td>
+      <td>7.0</td>
+      <td>7282</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>12</td>
+      <td>Midtown Center</td>
+      <td>Friday</td>
+      <td>8.0</td>
+      <td>7244</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>13</td>
+      <td>Midtown Center</td>
+      <td>Friday</td>
+      <td>7.0</td>
+      <td>7219</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>14</td>
+      <td>Midtown East</td>
+      <td>Thursday</td>
+      <td>7.0</td>
+      <td>7163</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>15</td>
+      <td>Midtown Center</td>
+      <td>Monday</td>
+      <td>8.0</td>
+      <td>6763</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>16</td>
+      <td>Times Sq/Theatre District</td>
+      <td>Friday</td>
+      <td>19.0</td>
+      <td>6142</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>17</td>
+      <td>Midtown Center</td>
+      <td>Tuesday</td>
+      <td>9.0</td>
+      <td>6130</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>18</td>
+      <td>Midtown Center</td>
+      <td>Wednesday</td>
+      <td>10.0</td>
+      <td>6098</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>19</td>
+      <td>Midtown Center</td>
+      <td>Friday</td>
+      <td>9.0</td>
+      <td>6018</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>20</td>
+      <td>Midtown East</td>
+      <td>Tuesday</td>
+      <td>8.0</td>
+      <td>5825</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>21</td>
+      <td>Midtown East</td>
+      <td>Tuesday</td>
+      <td>7.0</td>
+      <td>5820</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>22</td>
+      <td>Midtown East</td>
+      <td>Wednesday</td>
+      <td>9.0</td>
+      <td>5625</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>23</td>
+      <td>Midtown Center</td>
+      <td>Thursday</td>
+      <td>10.0</td>
+      <td>5612</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>24</td>
+      <td>Midtown Center</td>
+      <td>Wednesday</td>
+      <td>12.0</td>
+      <td>5496</td>
+    </tr>
+    <tr>
+      <th>25</th>
+      <td>25</td>
+      <td>Midtown East</td>
+      <td>Thursday</td>
+      <td>9.0</td>
+      <td>5491</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>26</td>
+      <td>Midtown Center</td>
+      <td>Monday</td>
+      <td>9.0</td>
+      <td>5476</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>27</td>
+      <td>Midtown Center</td>
+      <td>Wednesday</td>
+      <td>11.0</td>
+      <td>5459</td>
+    </tr>
+    <tr>
+      <th>28</th>
+      <td>28</td>
+      <td>Midtown East</td>
+      <td>Monday</td>
+      <td>7.0</td>
+      <td>5407</td>
+    </tr>
+    <tr>
+      <th>29</th>
+      <td>29</td>
+      <td>Midtown East</td>
+      <td>Friday</td>
+      <td>8.0</td>
+      <td>5385</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>39842</th>
+      <td>39842</td>
+      <td>Willets Point</td>
+      <td>Thursday</td>
+      <td>9.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39843</th>
+      <td>39843</td>
+      <td>Willets Point</td>
+      <td>Thursday</td>
+      <td>12.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39844</th>
+      <td>39844</td>
+      <td>Willets Point</td>
+      <td>Thursday</td>
+      <td>16.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39845</th>
+      <td>39845</td>
+      <td>Willets Point</td>
+      <td>Thursday</td>
+      <td>17.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39846</th>
+      <td>39846</td>
+      <td>Willets Point</td>
+      <td>Thursday</td>
+      <td>18.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39847</th>
+      <td>39847</td>
+      <td>Willets Point</td>
+      <td>Thursday</td>
+      <td>19.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39848</th>
+      <td>39848</td>
+      <td>Willets Point</td>
+      <td>Friday</td>
+      <td>12.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39849</th>
+      <td>39849</td>
+      <td>Willets Point</td>
+      <td>Friday</td>
+      <td>14.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39850</th>
+      <td>39850</td>
+      <td>Willets Point</td>
+      <td>Friday</td>
+      <td>19.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39851</th>
+      <td>39851</td>
+      <td>Willets Point</td>
+      <td>Friday</td>
+      <td>22.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39852</th>
+      <td>39852</td>
+      <td>Willets Point</td>
+      <td>Saturday</td>
+      <td>2.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39853</th>
+      <td>39853</td>
+      <td>Willets Point</td>
+      <td>Saturday</td>
+      <td>22.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39854</th>
+      <td>39854</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Sunday</td>
+      <td>8.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39855</th>
+      <td>39855</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Monday</td>
+      <td>4.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39856</th>
+      <td>39856</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Tuesday</td>
+      <td>4.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39857</th>
+      <td>39857</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Tuesday</td>
+      <td>8.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39858</th>
+      <td>39858</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Tuesday</td>
+      <td>15.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39859</th>
+      <td>39859</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Wednesday</td>
+      <td>6.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39860</th>
+      <td>39860</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Wednesday</td>
+      <td>10.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39861</th>
+      <td>39861</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Thursday</td>
+      <td>9.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39862</th>
+      <td>39862</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Friday</td>
+      <td>8.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39863</th>
+      <td>39863</td>
+      <td>Williamsbridge/Olinville</td>
+      <td>Friday</td>
+      <td>17.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39864</th>
+      <td>39864</td>
+      <td>Woodlawn/Wakefield</td>
+      <td>Monday</td>
+      <td>9.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39865</th>
+      <td>39865</td>
+      <td>Woodlawn/Wakefield</td>
+      <td>Tuesday</td>
+      <td>10.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39866</th>
+      <td>39866</td>
+      <td>Woodlawn/Wakefield</td>
+      <td>Wednesday</td>
+      <td>6.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39867</th>
+      <td>39867</td>
+      <td>Woodlawn/Wakefield</td>
+      <td>Thursday</td>
+      <td>8.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39868</th>
+      <td>39868</td>
+      <td>Woodlawn/Wakefield</td>
+      <td>Friday</td>
+      <td>9.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39869</th>
+      <td>39869</td>
+      <td>Woodlawn/Wakefield</td>
+      <td>Saturday</td>
+      <td>8.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39870</th>
+      <td>39870</td>
+      <td>Woodlawn/Wakefield</td>
+      <td>Saturday</td>
+      <td>9.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>39871</th>
+      <td>39871</td>
+      <td>zone_1</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+<p>39872 rows × 5 columns</p>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[2]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#Summarize the ridecounts by dropoff zones, and calcuate a rank by ridecount</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s1">&#39;ridecount&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;dropoff_zone&#39;</span><span class="p">],</span><span class="n">aggfunc</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">))</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s1">&#39;ridecount&#39;</span><span class="p">,</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">summary</span><span class="p">[</span><span class="s1">&#39;rank&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="mi">1</span>
+<span class="n">summary</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">Out[2]:</div>
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>ridecount</th>
+      <th>rank</th>
+    </tr>
+    <tr>
+      <th>dropoff_zone</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Midtown Center</th>
+      <td>456367</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Times Sq/Theatre District</th>
+      <td>385849</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>Murray Hill</th>
+      <td>381494</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>Midtown East</th>
+      <td>376738</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>Penn Station/Madison Sq West</th>
+      <td>339835</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>Upper East Side South</th>
+      <td>334615</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>Union Sq</th>
+      <td>332632</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>Upper East Side North</th>
+      <td>330459</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>Clinton East</th>
+      <td>314599</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>East Village</th>
+      <td>300551</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>Midtown North</th>
+      <td>288713</td>
+      <td>11</td>
+    </tr>
+    <tr>
+      <th>Midtown South</th>
+      <td>268810</td>
+      <td>12</td>
+    </tr>
+    <tr>
+      <th>East Chelsea</th>
+      <td>268013</td>
+      <td>13</td>
+    </tr>
+    <tr>
+      <th>Lincoln Square East</th>
+      <td>263386</td>
+      <td>14</td>
+    </tr>
+    <tr>
+      <th>Gramercy</th>
+      <td>245290</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>Lenox Hill West</th>
+      <td>242337</td>
+      <td>16</td>
+    </tr>
+    <tr>
+      <th>Upper West Side South</th>
+      <td>237176</td>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>West Chelsea/Hudson Yards</th>
+      <td>223234</td>
+      <td>18</td>
+    </tr>
+    <tr>
+      <th>TriBeCa/Civic Center</th>
+      <td>204429</td>
+      <td>19</td>
+    </tr>
+    <tr>
+      <th>West Village</th>
+      <td>193484</td>
+      <td>20</td>
+    </tr>
+    <tr>
+      <th>Garment District</th>
+      <td>191947</td>
+      <td>21</td>
+    </tr>
+    <tr>
+      <th>Lenox Hill East</th>
+      <td>189348</td>
+      <td>22</td>
+    </tr>
+    <tr>
+      <th>Yorkville West</th>
+      <td>188133</td>
+      <td>23</td>
+    </tr>
+    <tr>
+      <th>Sutton Place/Turtle Bay North</th>
+      <td>185979</td>
+      <td>24</td>
+    </tr>
+    <tr>
+      <th>Upper West Side North</th>
+      <td>183976</td>
+      <td>25</td>
+    </tr>
+    <tr>
+      <th>UN/Turtle Bay South</th>
+      <td>171774</td>
+      <td>26</td>
+    </tr>
+    <tr>
+      <th>Flatiron</th>
+      <td>166013</td>
+      <td>27</td>
+    </tr>
+    <tr>
+      <th>Greenwich Village North</th>
+      <td>161851</td>
+      <td>28</td>
+    </tr>
+    <tr>
+      <th>Meatpacking/West Village West</th>
+      <td>156353</td>
+      <td>29</td>
+    </tr>
+    <tr>
+      <th>Kips Bay</th>
+      <td>154943</td>
+      <td>30</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>Heartland Village/Todt Hill</th>
+      <td>229</td>
+      <td>231</td>
+    </tr>
+    <tr>
+      <th>Saint George/New Brighton</th>
+      <td>208</td>
+      <td>232</td>
+    </tr>
+    <tr>
+      <th>Arrochar/Fort Wadsworth</th>
+      <td>194</td>
+      <td>233</td>
+    </tr>
+    <tr>
+      <th>Stapleton</th>
+      <td>187</td>
+      <td>234</td>
+    </tr>
+    <tr>
+      <th>South Beach/Dongan Hills</th>
+      <td>175</td>
+      <td>235</td>
+    </tr>
+    <tr>
+      <th>Westerleigh</th>
+      <td>164</td>
+      <td>236</td>
+    </tr>
+    <tr>
+      <th>City Island</th>
+      <td>163</td>
+      <td>237</td>
+    </tr>
+    <tr>
+      <th>Green-Wood Cemetery</th>
+      <td>162</td>
+      <td>238</td>
+    </tr>
+    <tr>
+      <th>Pelham Bay Park</th>
+      <td>147</td>
+      <td>239</td>
+    </tr>
+    <tr>
+      <th>Grymes Hill/Clifton</th>
+      <td>144</td>
+      <td>240</td>
+    </tr>
+    <tr>
+      <th>Breezy Point/Fort Tilden/Riis Beach</th>
+      <td>140</td>
+      <td>241</td>
+    </tr>
+    <tr>
+      <th>West Brighton</th>
+      <td>139</td>
+      <td>242</td>
+    </tr>
+    <tr>
+      <th>Marine Park/Floyd Bennett Field</th>
+      <td>123</td>
+      <td>243</td>
+    </tr>
+    <tr>
+      <th>New Dorp/Midland Beach</th>
+      <td>114</td>
+      <td>244</td>
+    </tr>
+    <tr>
+      <th>Great Kills</th>
+      <td>112</td>
+      <td>245</td>
+    </tr>
+    <tr>
+      <th>Willets Point</th>
+      <td>99</td>
+      <td>246</td>
+    </tr>
+    <tr>
+      <th>Mariners Harbor</th>
+      <td>92</td>
+      <td>247</td>
+    </tr>
+    <tr>
+      <th>Crotona Park</th>
+      <td>81</td>
+      <td>248</td>
+    </tr>
+    <tr>
+      <th>Oakwood</th>
+      <td>79</td>
+      <td>249</td>
+    </tr>
+    <tr>
+      <th>Eltingville/Annadale/Prince's Bay</th>
+      <td>70</td>
+      <td>250</td>
+    </tr>
+    <tr>
+      <th>Arden Heights</th>
+      <td>57</td>
+      <td>251</td>
+    </tr>
+    <tr>
+      <th>Rossville/Woodrow</th>
+      <td>55</td>
+      <td>252</td>
+    </tr>
+    <tr>
+      <th>Port Richmond</th>
+      <td>41</td>
+      <td>253</td>
+    </tr>
+    <tr>
+      <th>Charleston/Tottenville</th>
+      <td>40</td>
+      <td>254</td>
+    </tr>
+    <tr>
+      <th>Broad Channel</th>
+      <td>39</td>
+      <td>255</td>
+    </tr>
+    <tr>
+      <th>Governor's Island/Ellis Island/Liberty Island</th>
+      <td>6</td>
+      <td>256</td>
+    </tr>
+    <tr>
+      <th>Jamaica Bay</th>
+      <td>5</td>
+      <td>257</td>
+    </tr>
+    <tr>
+      <th>Freshkills Park</th>
+      <td>2</td>
+      <td>258</td>
+    </tr>
+    <tr>
+      <th>Rikers Island</th>
+      <td>1</td>
+      <td>259</td>
+    </tr>
+    <tr>
+      <th>zone_1</th>
+      <td>1</td>
+      <td>260</td>
+    </tr>
+  </tbody>
+</table>
+<p>260 rows × 2 columns</p>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#Save the resulting table to a CSV file. This file will be used by QGIS</span>
+<span class="n">summary</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s1">&#39;zoneSummary.csv&#39;</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#Launch QGIS and create a new project</span>
+<span class="c1">#Choose Layer--&gt;Add Layer--&gt;Add Vector Layer, and import the shapefile &#39;taxi_zones_wgs84.shp&#39; created in Step 0</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Taxi-Zone-Map">Taxi Zone Map<a class="anchor-link" href="#Taxi-Zone-Map">&#182;</a></h2><p><img src='taxiZones.png'></p>
+<p>The above is the raw shapefile downloaded from the NYC website. We will enhance this map in subsequent steps to make it more useful.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[5]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#In QGIS, install the MMQGIS plugin. You will use this plugin to perform an attribute join</span>
+<span class="c1">#Once the plugin is installed, choose MMQGIS--&gt;Combine--&gt;Attributes Join from CSV File</span>
+<span class="c1">#Choose the zoneSummary.csv file created in the previous step</span>
+<span class="c1">#Match the dropoff_zone field in the CSV file with the zone field in the current shapefile</span>
+<span class="c1">#Save the output to taxi_zones_wgs84_enh.shp. This file now contains the additional attributes for ride counts and ranks</span>
+<span class="c1">#We will use these additional fields to format the map</span>
+
+<span class="c1">#The ridecount and rank fields are created as string fields by default. We need to convert them to numbers</span>
+<span class="c1">#Open the attributes table for the shapefile and choose New Field</span>
+<span class="c1">#Choose Create New Field and Create New Virtual field of integer type call the new fields nridecount and nrank</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Apply-Colors-To-Map">Apply Colors To Map<a class="anchor-link" href="#Apply-Colors-To-Map">&#182;</a></h2><p>Choose 'Categorized'</p>
+<p>Pick 'nridecount' as the column, and 'Spectral as the color ramp'</p>
+<p>Press the 'Classify' button, followed up 'Apply'</p>
+<p><img src='layerColors.png'></p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Apply-Labels-To-Map">Apply Labels To Map<a class="anchor-link" href="#Apply-Labels-To-Map">&#182;</a></h2><h3 id="Bird's-Eye-View-of-Manhattan">Bird's Eye View of Manhattan<a class="anchor-link" href="#Bird's-Eye-View-of-Manhattan">&#182;</a></h3><p><a href="http://qgiscloud.com/vbalasu/taxi_zones_color_by_area_midtown">Explore this map interactively</a>. Here, you can click on each neighborhood to see the ride counts.</p>
+<h5 id="Blue-color-=-More-taxi-dropoffs,-Labels-=-Rank">Blue color = More taxi dropoffs, Labels = Rank<a class="anchor-link" href="#Blue-color-=-More-taxi-dropoffs,-Labels-=-Rank">&#182;</a></h5><p><img src="BirdsEyeView.png" alt="Bird&#39;s Eye View"></p>
+<p>Looking at the above map, we determine that Midtown Manhattan is where the action is. We will zoom in further in the next step.</p>
+<p><img src="MidtownFocus.png" alt="Midtown Focus"></p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Zooming-In">Zooming In<a class="anchor-link" href="#Zooming-In">&#182;</a></h2><p>Based on our analysis, we have shortlisted to the top 4 neighborhoods, which all happen to be right next to each other. These zones are as follows:</p>
+<ul>
+<li>Midtown Center (#1)</li>
+<li>Times Sq/Theatre District (#2)</li>
+<li>Murray Hill (#3)</li>
+<li>Midtown East (#4)</li>
+</ul>
+<p>In the next step, we will pull the detailed taxi trip data for these 4 neighborhoods</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
@@ -11779,7 +12777,7 @@ import pandas as pd    # Pandas provides a powerful DataFrame to manipulate and 
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 3.53 s
+<pre>Wall time: 0 ns
 </pre>
 </div>
 </div>
@@ -11790,14 +12788,13 @@ import pandas as pd    # Pandas provides a powerful DataFrame to manipulate and 
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[2]:</div>
+<div class="prompt input_prompt">In&nbsp;[7]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
 #We connect to a SQLite database. This database was prepared using the notebook &quot;00 Prepare Taxi Trip Data&quot;
 #We will examine the contents of this database by looking at the sqlite_master table
 cn = sqlite3.connect(&#39;../taxiJul.db&#39;)
-master = pd.read_sql_query(&quot;SELECT * from sqlite_master;&quot;,cn)
 </pre></div>
 
 </div>
@@ -11810,7 +12807,7 @@ master = pd.read_sql_query(&quot;SELECT * from sqlite_master;&quot;,cn)
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 373 ms
+<pre>Wall time: 2.01 ms
 </pre>
 </div>
 </div>
@@ -11821,98 +12818,7 @@ master = pd.read_sql_query(&quot;SELECT * from sqlite_master;&quot;,cn)
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">master</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area"><div class="prompt output_prompt">Out[3]:</div>
-
-<div class="output_html rendered_html output_subarea output_execute_result">
-<div>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>type</th>
-      <th>name</th>
-      <th>tbl_name</th>
-      <th>rootpage</th>
-      <th>sql</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>table</td>
-      <td>distinct_pu_latlong</td>
-      <td>distinct_pu_latlong</td>
-      <td>3</td>
-      <td>CREATE TABLE distinct_pu_latlong(\n  pu_latlon...</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>index</td>
-      <td>latlong</td>
-      <td>distinct_pu_latlong</td>
-      <td>2914013</td>
-      <td>CREATE INDEX latlong ON `distinct_pu_latlong` ...</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>table</td>
-      <td>taxiJul</td>
-      <td>taxiJul</td>
-      <td>2</td>
-      <td>CREATE TABLE taxiJul(\n  "VendorID" TEXT,\n  "...</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>view</td>
-      <td>taxiJulEnrich</td>
-      <td>taxiJulEnrich</td>
-      <td>0</td>
-      <td>CREATE VIEW taxiJulEnrich AS SELECT *,\n1 AS `...</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>table</td>
-      <td>zones</td>
-      <td>zones</td>
-      <td>1714273</td>
-      <td>CREATE TABLE zones(\n  "LocationID" TEXT,\n  "...</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>table</td>
-      <td>01_Tourist_Resident</td>
-      <td>01_Tourist_Resident</td>
-      <td>3520136</td>
-      <td>CREATE TABLE "01_Tourist_Resident"(\n  dropoff...</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="prompt input_prompt">In&nbsp;[8]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#We are interested in the taxiJulEnrich view</span>
@@ -11929,7 +12835,7 @@ master = pd.read_sql_query(&quot;SELECT * from sqlite_master;&quot;,cn)
 <div class="output">
 
 
-<div class="output_area"><div class="prompt output_prompt">Out[4]:</div>
+<div class="output_area"><div class="prompt output_prompt">Out[8]:</div>
 
 
 <div class="output_text output_subarea output_execute_result">
@@ -11957,7 +12863,7 @@ master = pd.read_sql_query(&quot;SELECT * from sqlite_master;&quot;,cn)
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[5]:</div>
+<div class="prompt input_prompt">In&nbsp;[9]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
@@ -11965,7 +12871,11 @@ master = pd.read_sql_query(&quot;SELECT * from sqlite_master;&quot;,cn)
 #Due to the large size of the dataset (11 million+ records), it is more efficient to process using SQLite rather than 
 #load everything into memory
 #We calculate the number of trips by dropoff zone, weekday and hour, and sort the results in descending order
-df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM(`count`) AS `ridecount` FROM taxiJulEnrich GROUP BY `dropoff_zone`, `do_weekday`, `do_hour` ORDER BY `ridecount` DESC;&quot;, cn)
+#- Midtown Center (#1)
+#- Times Sq/Theatre District (#2)
+#- Murray Hill (#3)
+#- Midtown East (#4)
+df = pd.read_sql_query(&quot;SELECT * FROM taxiJulEnrich WHERE `dropoff_zone` IN (&#39;Midtown Center&#39;,&#39;Times Sq/Theater District&#39;,&#39;Murray Hill&#39;,&#39;Midtown East&#39;);&quot;, cn)
 </pre></div>
 
 </div>
@@ -11978,7 +12888,7 @@ df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 47 s
+<pre>Wall time: 1min 28s
 </pre>
 </div>
 </div>
@@ -11989,13 +12899,10 @@ df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[6]:</div>
+<div class="prompt input_prompt">In&nbsp;[10]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#Let&#39;s examine the first 20 rows of the results</span>
-<span class="c1">#We notice that Midtown Center is consistently the most popular destination zone</span>
-<span class="c1">#Weekdays are shown as numbers here, which are hard to read. We will convert them to text in the next step</span>
-<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -12006,7 +12913,7 @@ df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM
 <div class="output">
 
 
-<div class="output_area"><div class="prompt output_prompt">Out[6]:</div>
+<div class="output_area"><div class="prompt output_prompt">Out[10]:</div>
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <div>
@@ -12014,155 +12921,827 @@ df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>dropoff_zone</th>
-      <th>do_weekday</th>
-      <th>do_hour</th>
-      <th>ridecount</th>
+      <th>count</th>
+      <th>mean</th>
+      <th>std</th>
+      <th>min</th>
+      <th>25%</th>
+      <th>50%</th>
+      <th>75%</th>
+      <th>max</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>passenger_count</th>
+      <td>1214599.0</td>
+      <td>1.680424</td>
+      <td>1.349408</td>
+      <td>0.000000</td>
+      <td>1.000000</td>
+      <td>1.000000</td>
+      <td>2.000000</td>
+      <td>9.000000e+00</td>
+    </tr>
+    <tr>
+      <th>trip_distance</th>
+      <td>1214599.0</td>
+      <td>4.888817</td>
+      <td>3010.647175</td>
+      <td>0.000000</td>
+      <td>0.900000</td>
+      <td>1.400000</td>
+      <td>2.200000</td>
+      <td>3.318000e+06</td>
+    </tr>
+    <tr>
+      <th>fare_amount</th>
+      <td>1214599.0</td>
+      <td>11.023237</td>
+      <td>8.146214</td>
+      <td>-80.000000</td>
+      <td>6.500000</td>
+      <td>9.000000</td>
+      <td>12.000000</td>
+      <td>8.140000e+02</td>
+    </tr>
+    <tr>
+      <th>extra</th>
+      <td>1214599.0</td>
+      <td>0.242556</td>
+      <td>0.358181</td>
+      <td>-1.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.500000</td>
+      <td>1.500000e+00</td>
+    </tr>
+    <tr>
+      <th>mta_tax</th>
+      <td>1214599.0</td>
+      <td>0.499369</td>
+      <td>0.021012</td>
+      <td>-0.500000</td>
+      <td>0.500000</td>
+      <td>0.500000</td>
+      <td>0.500000</td>
+      <td>5.000000e-01</td>
+    </tr>
+    <tr>
+      <th>tip_amount</th>
+      <td>1214599.0</td>
+      <td>1.457989</td>
+      <td>2.135993</td>
+      <td>-41.000000</td>
+      <td>0.000000</td>
+      <td>1.080000</td>
+      <td>2.060000</td>
+      <td>6.613800e+02</td>
+    </tr>
+    <tr>
+      <th>tolls_amount</th>
+      <td>1214599.0</td>
+      <td>0.244104</td>
+      <td>1.273687</td>
+      <td>-5.540000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>5.914800e+02</td>
+    </tr>
+    <tr>
+      <th>improvement_surcharge</th>
+      <td>1214599.0</td>
+      <td>0.299822</td>
+      <td>0.010007</td>
+      <td>-0.300000</td>
+      <td>0.300000</td>
+      <td>0.300000</td>
+      <td>0.300000</td>
+      <td>3.000000e-01</td>
+    </tr>
+    <tr>
+      <th>total_amount</th>
+      <td>1214599.0</td>
+      <td>13.767449</td>
+      <td>10.278073</td>
+      <td>-80.300000</td>
+      <td>8.300000</td>
+      <td>11.160000</td>
+      <td>14.800000</td>
+      <td>8.148000e+02</td>
+    </tr>
+    <tr>
+      <th>pickup_Shape_Leng</th>
+      <td>1214599.0</td>
+      <td>0.046963</td>
+      <td>0.030995</td>
+      <td>0.024696</td>
+      <td>0.035270</td>
+      <td>0.041514</td>
+      <td>0.046108</td>
+      <td>2.905560e-01</td>
+    </tr>
+    <tr>
+      <th>pickup_Shape_Area</th>
+      <td>1214599.0</td>
+      <td>0.000137</td>
+      <td>0.000264</td>
+      <td>0.000027</td>
+      <td>0.000056</td>
+      <td>0.000075</td>
+      <td>0.000109</td>
+      <td>2.195566e-03</td>
+    </tr>
+    <tr>
+      <th>dropoff_Shape_Leng</th>
+      <td>1214599.0</td>
+      <td>0.038768</td>
+      <td>0.004743</td>
+      <td>0.035270</td>
+      <td>0.035270</td>
+      <td>0.035804</td>
+      <td>0.045769</td>
+      <td>4.576901e-02</td>
+    </tr>
+    <tr>
+      <th>dropoff_Shape_Area</th>
+      <td>1214599.0</td>
+      <td>0.000065</td>
+      <td>0.000012</td>
+      <td>0.000048</td>
+      <td>0.000048</td>
+      <td>0.000072</td>
+      <td>0.000074</td>
+      <td>7.431507e-05</td>
+    </tr>
+    <tr>
+      <th>count</th>
+      <td>1214599.0</td>
+      <td>1.000000</td>
+      <td>0.000000</td>
+      <td>1.000000</td>
+      <td>1.000000</td>
+      <td>1.000000</td>
+      <td>1.000000</td>
+      <td>1.000000e+00</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[11]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">Out[11]:</div>
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>Index([&#39;VendorID&#39;, &#39;tpep_pickup_datetime&#39;, &#39;tpep_dropoff_datetime&#39;,
+       &#39;passenger_count&#39;, &#39;trip_distance&#39;, &#39;pickup_longitude&#39;,
+       &#39;pickup_latitude&#39;, &#39;RatecodeID&#39;, &#39;store_and_fwd_flag&#39;,
+       &#39;dropoff_longitude&#39;, &#39;dropoff_latitude&#39;, &#39;payment_type&#39;, &#39;fare_amount&#39;,
+       &#39;extra&#39;, &#39;mta_tax&#39;, &#39;tip_amount&#39;, &#39;tolls_amount&#39;,
+       &#39;improvement_surcharge&#39;, &#39;total_amount&#39;, &#39;pickup_OBJECTID&#39;,
+       &#39;pickup_Shape_Leng&#39;, &#39;pickup_Shape_Area&#39;, &#39;pickup_zone&#39;,
+       &#39;pickup_LocationID&#39;, &#39;pickup_borough&#39;, &#39;dropoff_OBJECTID&#39;,
+       &#39;dropoff_Shape_Leng&#39;, &#39;dropoff_Shape_Area&#39;, &#39;dropoff_zone&#39;,
+       &#39;dropoff_Location&#39;, &#39;dropoff_borough&#39;, &#39;count&#39;, &#39;pu_year&#39;, &#39;pu_month&#39;,
+       &#39;pu_day&#39;, &#39;pu_hour&#39;, &#39;pu_minute&#39;, &#39;pu_second&#39;, &#39;pu_weekday&#39;, &#39;do_year&#39;,
+       &#39;do_month&#39;, &#39;do_day&#39;, &#39;do_hour&#39;, &#39;do_minute&#39;, &#39;do_second&#39;, &#39;do_weekday&#39;,
+       &#39;pu_latlong&#39;],
+      dtype=&#39;object&#39;)</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[12]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
+#Convert longitude and latitude to numeric, and store them as X and Y columns. Delete the text columns
+latlong = df[[&#39;dropoff_longitude&#39;,&#39;dropoff_latitude&#39;]]
+pd.options.mode.chained_assignment = None  # default=&#39;warn&#39;
+latlong[&#39;X&#39;] = pd.to_numeric(df[&#39;dropoff_longitude&#39;])
+latlong[&#39;Y&#39;] = pd.to_numeric(df[&#39;dropoff_latitude&#39;])
+del latlong[&#39;dropoff_longitude&#39;]
+del latlong[&#39;dropoff_latitude&#39;]
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Wall time: 1.22 s
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[13]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">latlong</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">Out[13]:</div>
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>count</th>
+      <th>mean</th>
+      <th>std</th>
+      <th>min</th>
+      <th>25%</th>
+      <th>50%</th>
+      <th>75%</th>
+      <th>max</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>X</th>
+      <td>1214599.0</td>
+      <td>-73.976404</td>
+      <td>0.003660</td>
+      <td>-73.984108</td>
+      <td>-73.979027</td>
+      <td>-73.976662</td>
+      <td>-73.973984</td>
+      <td>-73.966576</td>
+    </tr>
+    <tr>
+      <th>Y</th>
+      <td>1214599.0</td>
+      <td>40.754370</td>
+      <td>0.005015</td>
+      <td>40.741974</td>
+      <td>40.751091</td>
+      <td>40.755047</td>
+      <td>40.758415</td>
+      <td>40.763641</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[14]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
+from sklearn.cluster import KMeans
+kmeans = KMeans(n_clusters=10)
+model = kmeans.fit(latlong)
+print(&quot;model\n&quot;, model)
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>model
+ KMeans(algorithm=&#39;auto&#39;, copy_x=True, init=&#39;k-means++&#39;, max_iter=300,
+    n_clusters=10, n_init=10, n_jobs=1, precompute_distances=&#39;auto&#39;,
+    random_state=None, tol=0.0001, verbose=0)
+Wall time: 1min 5s
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[15]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">cluster_centers_</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">Out[15]:</div>
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>array([[-73.97964316,  40.75092624],
+       [-73.97302881,  40.75613974],
+       [-73.97430669,  40.75978808],
+       [-73.97718388,  40.75542978],
+       [-73.98138553,  40.7557259 ],
+       [-73.97821183,  40.76021162],
+       [-73.98085858,  40.74499799],
+       [-73.97546591,  40.74687464],
+       [-73.96974107,  40.76024697],
+       [-73.97568479,  40.75183028]])</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[16]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
+predict = kmeans.predict(latlong)
+latlong[&#39;group&#39;] = pd.Series(predict, index=latlong.index)
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Wall time: 280 ms
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[17]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">latlong</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">Out[17]:</div>
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>X</th>
+      <th>Y</th>
+      <th>group</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>Midtown Center</td>
+      <td>-73.975922</td>
+      <td>40.757702</td>
       <td>3</td>
-      <td>07</td>
-      <td>10075</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>Midtown Center</td>
-      <td>4</td>
-      <td>07</td>
-      <td>9825</td>
+      <td>-73.978607</td>
+      <td>40.761799</td>
+      <td>5</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>Midtown Center</td>
-      <td>3</td>
-      <td>08</td>
-      <td>9466</td>
+      <td>-73.977631</td>
+      <td>40.747368</td>
+      <td>7</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>Midtown Center</td>
-      <td>4</td>
-      <td>08</td>
-      <td>9289</td>
+      <td>-73.979843</td>
+      <td>40.749844</td>
+      <td>0</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>Midtown Center</td>
-      <td>3</td>
-      <td>09</td>
-      <td>7932</td>
+      <td>-73.972984</td>
+      <td>40.755630</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>5</th>
-      <td>Midtown Center</td>
-      <td>2</td>
-      <td>07</td>
-      <td>7920</td>
+      <td>-73.975082</td>
+      <td>40.752052</td>
+      <td>9</td>
     </tr>
     <tr>
       <th>6</th>
-      <td>Midtown East</td>
-      <td>3</td>
-      <td>08</td>
-      <td>7603</td>
+      <td>-73.972618</td>
+      <td>40.756092</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>7</th>
-      <td>Midtown Center</td>
-      <td>4</td>
-      <td>09</td>
-      <td>7515</td>
+      <td>-73.972862</td>
+      <td>40.755867</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>8</th>
-      <td>Midtown East</td>
-      <td>3</td>
-      <td>07</td>
-      <td>7372</td>
+      <td>-73.978050</td>
+      <td>40.745770</td>
+      <td>7</td>
     </tr>
     <tr>
       <th>9</th>
-      <td>Midtown Center</td>
-      <td>2</td>
-      <td>08</td>
-      <td>7367</td>
+      <td>-73.972054</td>
+      <td>40.756809</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>10</th>
-      <td>Midtown East</td>
-      <td>4</td>
-      <td>08</td>
-      <td>7291</td>
+      <td>-73.974846</td>
+      <td>40.757645</td>
+      <td>2</td>
     </tr>
     <tr>
       <th>11</th>
-      <td>Midtown Center</td>
-      <td>1</td>
-      <td>07</td>
-      <td>7282</td>
+      <td>-73.973282</td>
+      <td>40.752743</td>
+      <td>9</td>
     </tr>
     <tr>
       <th>12</th>
-      <td>Midtown Center</td>
-      <td>5</td>
-      <td>08</td>
-      <td>7244</td>
+      <td>-73.979065</td>
+      <td>40.752804</td>
+      <td>0</td>
     </tr>
     <tr>
       <th>13</th>
-      <td>Midtown Center</td>
-      <td>5</td>
-      <td>07</td>
-      <td>7219</td>
+      <td>-73.974640</td>
+      <td>40.756844</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>14</th>
-      <td>Midtown East</td>
+      <td>-73.983109</td>
+      <td>40.755848</td>
       <td>4</td>
-      <td>07</td>
-      <td>7163</td>
     </tr>
     <tr>
       <th>15</th>
-      <td>Midtown Center</td>
-      <td>1</td>
-      <td>08</td>
-      <td>6763</td>
+      <td>-73.972443</td>
+      <td>40.746216</td>
+      <td>7</td>
     </tr>
     <tr>
       <th>16</th>
-      <td>Times Sq/Theatre District</td>
-      <td>5</td>
-      <td>19</td>
-      <td>6142</td>
+      <td>-73.975395</td>
+      <td>40.752232</td>
+      <td>9</td>
     </tr>
     <tr>
       <th>17</th>
-      <td>Midtown Center</td>
-      <td>2</td>
-      <td>09</td>
-      <td>6130</td>
+      <td>-73.969589</td>
+      <td>40.760967</td>
+      <td>8</td>
     </tr>
     <tr>
       <th>18</th>
-      <td>Midtown Center</td>
-      <td>3</td>
-      <td>10</td>
-      <td>6098</td>
+      <td>-73.975151</td>
+      <td>40.757603</td>
+      <td>2</td>
     </tr>
     <tr>
       <th>19</th>
-      <td>Midtown Center</td>
+      <td>-73.982536</td>
+      <td>40.756927</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>-73.976830</td>
+      <td>40.752583</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>-73.977829</td>
+      <td>40.763401</td>
       <td>5</td>
-      <td>09</td>
-      <td>6018</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>-73.978790</td>
+      <td>40.761742</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>-73.967369</td>
+      <td>40.760502</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>-73.980263</td>
+      <td>40.750046</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>25</th>
+      <td>-73.981422</td>
+      <td>40.749828</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>-73.974731</td>
+      <td>40.753193</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>-73.977951</td>
+      <td>40.745880</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>28</th>
+      <td>-73.981255</td>
+      <td>40.752823</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>29</th>
+      <td>-73.975716</td>
+      <td>40.752071</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>1214569</th>
+      <td>-73.976700</td>
+      <td>40.751839</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>1214570</th>
+      <td>-73.977722</td>
+      <td>40.758831</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1214571</th>
+      <td>-73.979050</td>
+      <td>40.757553</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1214572</th>
+      <td>-73.978867</td>
+      <td>40.758686</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1214573</th>
+      <td>-73.981010</td>
+      <td>40.750237</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1214574</th>
+      <td>-73.969391</td>
+      <td>40.758335</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>1214575</th>
+      <td>-73.983688</td>
+      <td>40.743553</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>1214576</th>
+      <td>-73.975075</td>
+      <td>40.762543</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1214577</th>
+      <td>-73.977119</td>
+      <td>40.750954</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>1214578</th>
+      <td>-73.971924</td>
+      <td>40.760197</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>1214579</th>
+      <td>-73.977196</td>
+      <td>40.762661</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1214580</th>
+      <td>-73.976631</td>
+      <td>40.759876</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1214581</th>
+      <td>-73.977638</td>
+      <td>40.753647</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>1214582</th>
+      <td>-73.981689</td>
+      <td>40.752274</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1214583</th>
+      <td>-73.974602</td>
+      <td>40.753929</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>1214584</th>
+      <td>-73.976097</td>
+      <td>40.760410</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1214585</th>
+      <td>-73.974472</td>
+      <td>40.754932</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1214586</th>
+      <td>-73.972740</td>
+      <td>40.746639</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>1214587</th>
+      <td>-73.969269</td>
+      <td>40.761906</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>1214588</th>
+      <td>-73.975151</td>
+      <td>40.761066</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1214589</th>
+      <td>-73.981819</td>
+      <td>40.757366</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>1214590</th>
+      <td>-73.979439</td>
+      <td>40.755154</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>1214591</th>
+      <td>-73.981148</td>
+      <td>40.750504</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1214592</th>
+      <td>-73.974968</td>
+      <td>40.755985</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1214593</th>
+      <td>-73.976234</td>
+      <td>40.761322</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1214594</th>
+      <td>-73.977119</td>
+      <td>40.758636</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1214595</th>
+      <td>-73.981911</td>
+      <td>40.756355</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>1214596</th>
+      <td>-73.977379</td>
+      <td>40.755611</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>1214597</th>
+      <td>-73.979042</td>
+      <td>40.758713</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1214598</th>
+      <td>-73.980186</td>
+      <td>40.748360</td>
+      <td>0</td>
     </tr>
   </tbody>
 </table>
+<p>1214599 rows × 3 columns</p>
 </div>
 </div>
 
@@ -12174,21 +13753,16 @@ df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[7]:</div>
+<div class="prompt input_prompt">In&nbsp;[18]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
-#In this step, we make the data more user-friendly and useful for analysis
-#Firstly, Weekday numbers (eg. 1) are converted to strings (eg. Monday)
-#Secondly, hours are converted from string to numbers
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;0&#39;,&#39;Sunday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;1&#39;,&#39;Monday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;2&#39;,&#39;Tuesday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;3&#39;,&#39;Wednesday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;4&#39;,&#39;Thursday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;5&#39;,&#39;Friday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;6&#39;,&#39;Saturday&#39;)
-df[&#39;do_hour&#39;] = pd.to_numeric(df[&#39;do_hour&#39;])
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#Create a pivot table of the cluster groups, and calculate counts of rides for each cluster</span>
+<span class="c1">#Then order the cluster in descending order of counts</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">latlong</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">])</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">latlong</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">],</span><span class="n">aggfunc</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+<span class="n">summary</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">]</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s1">&#39;count&#39;</span><span class="p">],</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">summary</span>
 </pre></div>
 
 </div>
@@ -12199,34 +13773,7 @@ df[&#39;do_hour&#39;] = pd.to_numeric(df[&#39;do_hour&#39;])
 <div class="output">
 
 
-<div class="output_area"><div class="prompt"></div>
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 79.7 ms
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[8]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area"><div class="prompt output_prompt">Out[8]:</div>
+<div class="output_area"><div class="prompt output_prompt">Out[18]:</div>
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <div>
@@ -12234,47 +13781,77 @@ df[&#39;do_hour&#39;] = pd.to_numeric(df[&#39;do_hour&#39;])
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>dropoff_zone</th>
-      <th>do_weekday</th>
-      <th>do_hour</th>
-      <th>ridecount</th>
+      <th>X</th>
+      <th>Y</th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>group</th>
+      <th></th>
+      <th></th>
+      <th></th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>Midtown Center</td>
-      <td>Wednesday</td>
-      <td>7.0</td>
-      <td>10075</td>
+      <td>-73.979641</td>
+      <td>40.750928</td>
+      <td>180749.0</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>Midtown Center</td>
-      <td>Thursday</td>
-      <td>7.0</td>
-      <td>9825</td>
+      <td>-73.973029</td>
+      <td>40.756142</td>
+      <td>152243.0</td>
     </tr>
     <tr>
-      <th>2</th>
-      <td>Midtown Center</td>
-      <td>Wednesday</td>
-      <td>8.0</td>
-      <td>9466</td>
+      <th>9</th>
+      <td>-73.975681</td>
+      <td>40.751834</td>
+      <td>139271.0</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>Midtown Center</td>
-      <td>Thursday</td>
-      <td>8.0</td>
-      <td>9289</td>
+      <td>-73.977186</td>
+      <td>40.755430</td>
+      <td>129012.0</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>-73.969742</td>
+      <td>40.760247</td>
+      <td>122066.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>-73.974310</td>
+      <td>40.759790</td>
+      <td>115243.0</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>-73.978213</td>
+      <td>40.760212</td>
+      <td>111674.0</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>-73.980859</td>
+      <td>40.744999</td>
+      <td>98923.0</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>Midtown Center</td>
-      <td>Wednesday</td>
-      <td>9.0</td>
-      <td>7932</td>
+      <td>-73.981387</td>
+      <td>40.755726</td>
+      <td>83688.0</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>-73.975468</td>
+      <td>40.746878</td>
+      <td>81730.0</td>
     </tr>
   </tbody>
 </table>
@@ -12287,80 +13864,23 @@ df[&#39;do_hour&#39;] = pd.to_numeric(df[&#39;do_hour&#39;])
 </div>
 
 </div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[9]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
-#We now export our dataset to a CSV file. This file will be used by Excel and Tableau for further analysis and visualization
-df.to_csv(&#39;01_Tourist_Resident.csv&#39;, index_label=&#39;ROWID&#39;)
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area"><div class="prompt"></div>
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 349 ms
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
 <div class="cell border-box-sizing text_cell rendered">
 <div class="prompt input_prompt">
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Most-Popular-Dropoff-Zones">Most Popular Dropoff Zones<a class="anchor-link" href="#Most-Popular-Dropoff-Zones">&#182;</a></h3><p>Which is the most popular taxi destination in New York City? Turns out that it is not Times Square, as I had assumed! Midtown Center receives more dropoffs, probably due to the concentration of office buildings in this area.</p>
-<p>The below chart was created using the Microsoft Excel workbook stored <a href="https://github.com/vbalasu/vbalasu.github.io/raw/master/taxi/01_Tourist_Resident/01_Tourist_Resident.xlsx">here</a></p>
-<p>This workbook contains a dynamic link to the CSV file created in the previous step. You can use Pivot Tables in Excel to further explore the dataset yourself.</p>
-<p><img src="MostPopularDropoffZones.png" alt="Most Popular Dropoff Zones" title="Most Popular Zones"></p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Interactive-Visualizations-In-Tableau">Interactive Visualizations In Tableau<a class="anchor-link" href="#Interactive-Visualizations-In-Tableau">&#182;</a></h2><p>The following interactive visualizations were created using Tableau Public. They are also based on the same CSV file created above. Be sure to click on the links below to explore each visualization.</p>
-<p><a href="https://public.tableau.com/profile/vijay.balasubramaniam#!/vizhome/01_Tourist_Resident/PopularDropoffZones">Popular Dropoff Zones</a> - The top 3 destinations are Midtown Center, Times Square/Theater District and Murray Hill</p>
-<p>This visualization was created in Tableau as follows:</p>
-
-<pre><code>Chart type: Treemap
-Labels: Dropoff Zone
-Colors: SUM(Ridecount)
-Color Palette: Sunrise-Sunset Diverging
-Size: SUM(Ridecount)</code></pre>
-<p><a href="https://public.tableau.com/profile/vijay.balasubramaniam#!/vizhome/01_Tourist_Resident/PopularZonesByHour">Popular Zones By Hour</a> - Traffic to Midtown Center and Midtown East is highest in the mornings around 7-8am, possibly due to the concentration of office buildings. Traffic to Times Square and Murray Hill peaks in the evenings, indicating they are popular destinations for nightlife. Remember, the city never sleeps!</p>
-<p>This visualization was created in Tableau as follows:</p>
-
-<pre><code>Chart type: Bar
-Columns: Dropoff Zone, Hour
-Rows: SUM(Ridecount)
-Color Palette: Blue-Teal
-Filters: Dropoff Zone (to eliminate nulls)</code></pre>
-<p><a href="https://public.tableau.com/profile/vijay.balasubramaniam#!/vizhome/01_Tourist_Resident/PopularZonesByWeekday">Popular Zones By Weekday</a> - Wednesdays and Thursdays see the most amount of taxi activity. This is consistent across almost all zones</p>
-<p>This visualization was created in Tableau as follows:</p>
-
-<pre><code>Chart type: Bar
-Columns: Dropoff Zone, Weekday
-Rows: SUM(Ridecount)
-Colors: Weekday
-Color Palette: Automatic
-Filters: Dropoff Zone (to eliminate nulls)</code></pre>
-<p>Note that Tableau Public is a free tool, and you can download the Tableau workbook using the above links and explore on your own if you wish.</p>
+<h1 id="Pick-the-top-3-locations">Pick the top 3 locations<a class="anchor-link" href="#Pick-the-top-3-locations">&#182;</a></h1><p>Based on the matrix above, we know that the top 3 clusters are Group 1, Group 0 and Group 4</p>
+<p>We will use the latitude and longitude of the cluster centers, not the averages shown in the above table</p>
+<h1 id="And-The-Winners-Are-...">And The Winners Are ...<a class="anchor-link" href="#And-The-Winners-Are-...">&#182;</a></h1><p>A quick visit to Google Maps tells us that these correspond to the following street locations:</p>
+<ol>
+<li>Group 0: 40th Street, Between Madison Ave and Park Ave (40.750928,-73.979641)</li>
+<li>Group 1: 49th Street and Lexington Ave (40.756142,-73.973029)</li>
+<li>Group 9: 43rd Street and Lexington Ave (40.751834,-73.975681)</li>
+</ol>
+<h3 id="#1-40th-Street,-Between-Madison-Ave-and-Park-Ave">#1 40th Street, Between Madison Ave and Park Ave<a class="anchor-link" href="##1-40th-Street,-Between-Madison-Ave-and-Park-Ave">&#182;</a></h3><p><img alt="40th Street, Between Madison Ave and Park Ave" src="Rank1.png" width="600"></p>
+<h3 id="#2-49th-Street-and-Lexington-Ave">#2 49th Street and Lexington Ave<a class="anchor-link" href="##2-49th-Street-and-Lexington-Ave">&#182;</a></h3><p><img alt="49th Street and Lexington Ave" src="Rank2.png" width="600"></p>
+<h3 id="#3-43rd-Street-and-Lexington-Ave">#3 43rd Street and Lexington Ave<a class="anchor-link" href="##3-43rd-Street-and-Lexington-Ave">&#182;</a></h3><p><img alt="43rd Street and Lexington Ave" src="Rank3.png" width="600"></p>
+<p>We have successfully identified the top 3 locations based on our traffic and neighborhood selections. The business owner now has a solid data-driven foundation to make the location decision. Of course, there will be other factors such as rent, crime rate, etc. that should also be considered, but we now have a short list to work from.</p>
 
 </div>
 </div>

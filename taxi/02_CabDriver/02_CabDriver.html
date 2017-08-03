@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" />
-<title>01_Tourist_Resident</title>
+<title>02_CabDriver</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
@@ -11751,9 +11751,9 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="1-Tourist-or-Resident-Perspective">1 Tourist or Resident Perspective<a class="anchor-link" href="#1-Tourist-or-Resident-Perspective">&#182;</a></h1><p>In this notebook, we will analyze the taxi data from the perspective of a tourist or resident who wants to explore interesting parts of the city.</p>
-<p>Taxi dropoffs are used as a proxy for the "popularity" of a given location. We will rank-order the taxi zones contained in the data by popularity at various times of the day and week.</p>
-<p>We will then visualize the data using Excel and Tableau using interactive charts.</p>
+<h1 id="2-Cab-Driver-Perspective">2 Cab Driver Perspective<a class="anchor-link" href="#2-Cab-Driver-Perspective">&#182;</a></h1><p>In this notebook, we will analyze the taxi data from the perspective of a cab driver who wants to maximize earnings and tips.</p>
+<p>From the cab driver's perspective, it is useful to know which pickup locations and times are best for maximizing earnings and tips, as well as give an idea of which dropoff locations the driver is likely to end up in.</p>
+<p>The first 4 steps are the same as before. After that, we will use additional fields for our analysis, including pickup locations, pickup times, and trip duration and earnings metrics</p>
 
 </div>
 </div>
@@ -11779,7 +11779,7 @@ import pandas as pd    # Pandas provides a powerful DataFrame to manipulate and 
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 3.53 s
+<pre>Wall time: 2.93 s
 </pre>
 </div>
 </div>
@@ -11810,7 +11810,7 @@ master = pd.read_sql_query(&quot;SELECT * from sqlite_master;&quot;,cn)
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 373 ms
+<pre>Wall time: 383 ms
 </pre>
 </div>
 </div>
@@ -11917,7 +11917,7 @@ master = pd.read_sql_query(&quot;SELECT * from sqlite_master;&quot;,cn)
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#We are interested in the taxiJulEnrich view</span>
 <span class="c1">#Read the first row of this view to examine the columns available</span>
-<span class="n">sample</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql_query</span><span class="p">(</span><span class="s2">&quot;SELECT * from taxiJulEnrich LIMIT 1;&quot;</span><span class="p">,</span><span class="n">cn</span><span class="p">)</span>
+<span class="n">sample</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql_query</span><span class="p">(</span><span class="s2">&quot;SELECT * from taxiJulEnrich LIMIT 2;&quot;</span><span class="p">,</span><span class="n">cn</span><span class="p">)</span>
 <span class="n">sample</span><span class="o">.</span><span class="n">columns</span>
 </pre></div>
 
@@ -11961,11 +11961,14 @@ master = pd.read_sql_query(&quot;SELECT * from sqlite_master;&quot;,cn)
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
-#In this step, we use SQLite to group the taxi trips by dropoff zone, and return the counts
+#In this step, we use SQLite to group the taxi trips by pickup zone, pickup time, and dropoff zone and return the counts and summary tips/fares
+#Note that the original data set does not contain trip durations. 
+#
+#We will calculate trip duration in minutes by subtracting the pickup time from the dropoff time
 #Due to the large size of the dataset (11 million+ records), it is more efficient to process using SQLite rather than 
 #load everything into memory
 #We calculate the number of trips by dropoff zone, weekday and hour, and sort the results in descending order
-df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM(`count`) AS `ridecount` FROM taxiJulEnrich GROUP BY `dropoff_zone`, `do_weekday`, `do_hour` ORDER BY `ridecount` DESC;&quot;, cn)
+df = pd.read_sql_query(&quot;SELECT `pickup_zone`, `pu_weekday`, `pu_hour`, `dropoff_zone`, SUM((julianday(`tpep_dropoff_datetime`) - julianday(`tpep_pickup_datetime`))*24*60) AS `tripduration_minutes`, SUM(`count`) AS `ridecount`, SUM(`tip_amount`) AS `sum_tip_amount`, SUM(`total_amount`) AS `sum_total_amount` FROM taxiJulEnrich GROUP BY `pickup_zone`, `pu_weekday`, `pu_hour`, `dropoff_zone` ORDER BY `ridecount` DESC;&quot;, cn)
 </pre></div>
 
 </div>
@@ -11978,7 +11981,7 @@ df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 47 s
+<pre>Wall time: 1min 30s
 </pre>
 </div>
 </div>
@@ -11992,10 +11995,7 @@ df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM
 <div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#Let&#39;s examine the first 20 rows of the results</span>
-<span class="c1">#We notice that Midtown Center is consistently the most popular destination zone</span>
-<span class="c1">#Weekdays are shown as numbers here, which are hard to read. We will convert them to text in the next step</span>
-<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -12014,152 +12014,71 @@ df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM
   <thead>
     <tr style="text-align: right;">
       <th></th>
+      <th>pickup_zone</th>
+      <th>pu_weekday</th>
+      <th>pu_hour</th>
       <th>dropoff_zone</th>
-      <th>do_weekday</th>
-      <th>do_hour</th>
+      <th>tripduration_minutes</th>
       <th>ridecount</th>
+      <th>sum_tip_amount</th>
+      <th>sum_total_amount</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>Midtown Center</td>
-      <td>3</td>
+      <td>Penn Station/Madison Sq West</td>
+      <td>4</td>
       <td>07</td>
-      <td>10075</td>
+      <td>Midtown Center</td>
+      <td>7027.883340</td>
+      <td>768</td>
+      <td>806.41</td>
+      <td>7431.81</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>Midtown Center</td>
-      <td>4</td>
+      <td>Penn Station/Madison Sq West</td>
+      <td>3</td>
       <td>07</td>
-      <td>9825</td>
+      <td>Midtown Center</td>
+      <td>6794.200014</td>
+      <td>763</td>
+      <td>803.50</td>
+      <td>7284.90</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>Midtown Center</td>
+      <td>Upper East Side South</td>
       <td>3</td>
       <td>08</td>
-      <td>9466</td>
+      <td>Midtown East</td>
+      <td>8257.566678</td>
+      <td>762</td>
+      <td>853.68</td>
+      <td>7749.88</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>Midtown Center</td>
-      <td>4</td>
-      <td>08</td>
-      <td>9289</td>
+      <td>Upper East Side South</td>
+      <td>3</td>
+      <td>14</td>
+      <td>Upper East Side North</td>
+      <td>5851.283344</td>
+      <td>749</td>
+      <td>543.30</td>
+      <td>5715.90</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>Midtown Center</td>
+      <td>Upper East Side North</td>
       <td>3</td>
-      <td>09</td>
-      <td>7932</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>Midtown Center</td>
-      <td>2</td>
-      <td>07</td>
-      <td>7920</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>Midtown East</td>
-      <td>3</td>
-      <td>08</td>
-      <td>7603</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>Midtown Center</td>
-      <td>4</td>
-      <td>09</td>
-      <td>7515</td>
-    </tr>
-    <tr>
-      <th>8</th>
-      <td>Midtown East</td>
-      <td>3</td>
-      <td>07</td>
-      <td>7372</td>
-    </tr>
-    <tr>
-      <th>9</th>
-      <td>Midtown Center</td>
-      <td>2</td>
-      <td>08</td>
-      <td>7367</td>
-    </tr>
-    <tr>
-      <th>10</th>
-      <td>Midtown East</td>
-      <td>4</td>
-      <td>08</td>
-      <td>7291</td>
-    </tr>
-    <tr>
-      <th>11</th>
-      <td>Midtown Center</td>
-      <td>1</td>
-      <td>07</td>
-      <td>7282</td>
-    </tr>
-    <tr>
-      <th>12</th>
-      <td>Midtown Center</td>
-      <td>5</td>
-      <td>08</td>
-      <td>7244</td>
-    </tr>
-    <tr>
-      <th>13</th>
-      <td>Midtown Center</td>
-      <td>5</td>
-      <td>07</td>
-      <td>7219</td>
-    </tr>
-    <tr>
-      <th>14</th>
-      <td>Midtown East</td>
-      <td>4</td>
-      <td>07</td>
-      <td>7163</td>
-    </tr>
-    <tr>
-      <th>15</th>
-      <td>Midtown Center</td>
-      <td>1</td>
-      <td>08</td>
-      <td>6763</td>
-    </tr>
-    <tr>
-      <th>16</th>
-      <td>Times Sq/Theatre District</td>
-      <td>5</td>
-      <td>19</td>
-      <td>6142</td>
-    </tr>
-    <tr>
-      <th>17</th>
-      <td>Midtown Center</td>
-      <td>2</td>
-      <td>09</td>
-      <td>6130</td>
-    </tr>
-    <tr>
-      <th>18</th>
-      <td>Midtown Center</td>
-      <td>3</td>
-      <td>10</td>
-      <td>6098</td>
-    </tr>
-    <tr>
-      <th>19</th>
-      <td>Midtown Center</td>
-      <td>5</td>
-      <td>09</td>
-      <td>6018</td>
+      <td>12</td>
+      <td>Upper East Side South</td>
+      <td>8323.500002</td>
+      <td>729</td>
+      <td>685.84</td>
+      <td>7186.04</td>
     </tr>
   </tbody>
 </table>
@@ -12181,14 +12100,18 @@ df = pd.read_sql_query(&quot;SELECT `dropoff_zone`, `do_weekday`, `do_hour`, SUM
 #In this step, we make the data more user-friendly and useful for analysis
 #Firstly, Weekday numbers (eg. 1) are converted to strings (eg. Monday)
 #Secondly, hours are converted from string to numbers
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;0&#39;,&#39;Sunday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;1&#39;,&#39;Monday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;2&#39;,&#39;Tuesday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;3&#39;,&#39;Wednesday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;4&#39;,&#39;Thursday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;5&#39;,&#39;Friday&#39;)
-df[&#39;do_weekday&#39;] = df[&#39;do_weekday&#39;].replace(&#39;6&#39;,&#39;Saturday&#39;)
-df[&#39;do_hour&#39;] = pd.to_numeric(df[&#39;do_hour&#39;])
+#Thirdly, we calculate average ride duration, average tip per minute and average amount per minute
+df[&#39;pu_weekday&#39;] = df[&#39;pu_weekday&#39;].replace(&#39;0&#39;,&#39;Sunday&#39;)
+df[&#39;pu_weekday&#39;] = df[&#39;pu_weekday&#39;].replace(&#39;1&#39;,&#39;Monday&#39;)
+df[&#39;pu_weekday&#39;] = df[&#39;pu_weekday&#39;].replace(&#39;2&#39;,&#39;Tuesday&#39;)
+df[&#39;pu_weekday&#39;] = df[&#39;pu_weekday&#39;].replace(&#39;3&#39;,&#39;Wednesday&#39;)
+df[&#39;pu_weekday&#39;] = df[&#39;pu_weekday&#39;].replace(&#39;4&#39;,&#39;Thursday&#39;)
+df[&#39;pu_weekday&#39;] = df[&#39;pu_weekday&#39;].replace(&#39;5&#39;,&#39;Friday&#39;)
+df[&#39;pu_weekday&#39;] = df[&#39;pu_weekday&#39;].replace(&#39;6&#39;,&#39;Saturday&#39;)
+df[&#39;pu_hour&#39;] = pd.to_numeric(df[&#39;pu_hour&#39;])
+df[&#39;avg_tripduration_minutes&#39;] = df[&#39;tripduration_minutes&#39;] / df[&#39;ridecount&#39;]
+df[&#39;avg_tip_perminute&#39;] = df[&#39;sum_tip_amount&#39;] / df[&#39;ridecount&#39;] / df[&#39;avg_tripduration_minutes&#39;]
+df[&#39;avg_amount_perminute&#39;] = df[&#39;sum_total_amount&#39;] / df[&#39;ridecount&#39;] / df[&#39;avg_tripduration_minutes&#39;]
 </pre></div>
 
 </div>
@@ -12201,7 +12124,7 @@ df[&#39;do_hour&#39;] = pd.to_numeric(df[&#39;do_hour&#39;])
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 79.7 ms
+<pre>Wall time: 1.39 s
 </pre>
 </div>
 </div>
@@ -12234,47 +12157,89 @@ df[&#39;do_hour&#39;] = pd.to_numeric(df[&#39;do_hour&#39;])
   <thead>
     <tr style="text-align: right;">
       <th></th>
+      <th>pickup_zone</th>
+      <th>pu_weekday</th>
+      <th>pu_hour</th>
       <th>dropoff_zone</th>
-      <th>do_weekday</th>
-      <th>do_hour</th>
+      <th>tripduration_minutes</th>
       <th>ridecount</th>
+      <th>sum_tip_amount</th>
+      <th>sum_total_amount</th>
+      <th>avg_tripduration_minutes</th>
+      <th>avg_tip_perminute</th>
+      <th>avg_amount_perminute</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>Midtown Center</td>
-      <td>Wednesday</td>
+      <td>Penn Station/Madison Sq West</td>
+      <td>Thursday</td>
       <td>7.0</td>
-      <td>10075</td>
+      <td>Midtown Center</td>
+      <td>7027.883340</td>
+      <td>768</td>
+      <td>806.41</td>
+      <td>7431.81</td>
+      <td>9.150890</td>
+      <td>0.114744</td>
+      <td>1.057475</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>Midtown Center</td>
-      <td>Thursday</td>
+      <td>Penn Station/Madison Sq West</td>
+      <td>Wednesday</td>
       <td>7.0</td>
-      <td>9825</td>
+      <td>Midtown Center</td>
+      <td>6794.200014</td>
+      <td>763</td>
+      <td>803.50</td>
+      <td>7284.90</td>
+      <td>8.904587</td>
+      <td>0.118263</td>
+      <td>1.072223</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>Midtown Center</td>
+      <td>Upper East Side South</td>
       <td>Wednesday</td>
       <td>8.0</td>
-      <td>9466</td>
+      <td>Midtown East</td>
+      <td>8257.566678</td>
+      <td>762</td>
+      <td>853.68</td>
+      <td>7749.88</td>
+      <td>10.836702</td>
+      <td>0.103382</td>
+      <td>0.938519</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>Midtown Center</td>
-      <td>Thursday</td>
-      <td>8.0</td>
-      <td>9289</td>
+      <td>Upper East Side South</td>
+      <td>Wednesday</td>
+      <td>14.0</td>
+      <td>Upper East Side North</td>
+      <td>5851.283344</td>
+      <td>749</td>
+      <td>543.30</td>
+      <td>5715.90</td>
+      <td>7.812127</td>
+      <td>0.092851</td>
+      <td>0.976863</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>Midtown Center</td>
+      <td>Upper East Side North</td>
       <td>Wednesday</td>
-      <td>9.0</td>
-      <td>7932</td>
+      <td>12.0</td>
+      <td>Upper East Side South</td>
+      <td>8323.500002</td>
+      <td>729</td>
+      <td>685.84</td>
+      <td>7186.04</td>
+      <td>11.417695</td>
+      <td>0.082398</td>
+      <td>0.863344</td>
     </tr>
   </tbody>
 </table>
@@ -12294,7 +12259,7 @@ df[&#39;do_hour&#39;] = pd.to_numeric(df[&#39;do_hour&#39;])
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
 #We now export our dataset to a CSV file. This file will be used by Excel and Tableau for further analysis and visualization
-df.to_csv(&#39;01_Tourist_Resident.csv&#39;, index_label=&#39;ROWID&#39;)
+df.to_csv(&#39;02_Cabdriver.csv&#39;, index_label=&#39;ROWID&#39;)
 </pre></div>
 
 </div>
@@ -12307,7 +12272,7 @@ df.to_csv(&#39;01_Tourist_Resident.csv&#39;, index_label=&#39;ROWID&#39;)
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 349 ms
+<pre>Wall time: 20.3 s
 </pre>
 </div>
 </div>
@@ -12321,10 +12286,12 @@ df.to_csv(&#39;01_Tourist_Resident.csv&#39;, index_label=&#39;ROWID&#39;)
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Most-Popular-Dropoff-Zones">Most Popular Dropoff Zones<a class="anchor-link" href="#Most-Popular-Dropoff-Zones">&#182;</a></h3><p>Which is the most popular taxi destination in New York City? Turns out that it is not Times Square, as I had assumed! Midtown Center receives more dropoffs, probably due to the concentration of office buildings in this area.</p>
-<p>The below chart was created using the Microsoft Excel workbook stored <a href="https://github.com/vbalasu/vbalasu.github.io/raw/master/taxi/01_Tourist_Resident/01_Tourist_Resident.xlsx">here</a></p>
+<h3 id="Most-Lucrative-Pickup-Zones">Most Lucrative Pickup Zones<a class="anchor-link" href="#Most-Lucrative-Pickup-Zones">&#182;</a></h3><p>Where in New York City can a cab driver earn the most tips, and get the highest value fares? As expected, the airports top the list. However, did you know that LaGuardia airport is more lucrative than JFK airport?</p>
+<p>The below chart was created using the Microsoft Excel workbook stored <a href="https://github.com/vbalasu/vbalasu.github.io/blob/master/taxi/02_CabDriver/02_Cabdriver.xlsb">here</a></p>
 <p>This workbook contains a dynamic link to the CSV file created in the previous step. You can use Pivot Tables in Excel to further explore the dataset yourself.</p>
-<p><img src="MostPopularDropoffZones.png" alt="Most Popular Dropoff Zones" title="Most Popular Zones"></p>
+<p><img src="Top15PickupZonesWithMaxTips.png" alt="Top 15 Pickup Zones With The Maximum Tips" title="Top 15 Pickup Zones With The Maximum Tips"></p>
+<p>What if you looked at it from the perspective of tips earned in cents per minute? This provides the best ROI for the cab driver's time. Based on this metric, a different picture emerges for the Top 15 pickup locations. It turns out that New York yellow cab drivers can earn a lot of tips by picking passengers from Newark airport!</p>
+<p><img src="Top15TipsCentsPerMinute.png" alt="Top 15 Pickup Zones Based on Tips (Cents Per Minute)" title="Top 15 Pickup Zones Based on Tips (Cents Per Minute)"></p>
 
 </div>
 </div>
@@ -12334,32 +12301,16 @@ df.to_csv(&#39;01_Tourist_Resident.csv&#39;, index_label=&#39;ROWID&#39;)
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Interactive-Visualizations-In-Tableau">Interactive Visualizations In Tableau<a class="anchor-link" href="#Interactive-Visualizations-In-Tableau">&#182;</a></h2><p>The following interactive visualizations were created using Tableau Public. They are also based on the same CSV file created above. Be sure to click on the links below to explore each visualization.</p>
-<p><a href="https://public.tableau.com/profile/vijay.balasubramaniam#!/vizhome/01_Tourist_Resident/PopularDropoffZones">Popular Dropoff Zones</a> - The top 3 destinations are Midtown Center, Times Square/Theater District and Murray Hill</p>
+<h2 id="Interactive-Visualization-In-Tableau">Interactive Visualization In Tableau<a class="anchor-link" href="#Interactive-Visualization-In-Tableau">&#182;</a></h2><p>The following interactive visualization was created using Tableau Public. It is also based on the same CSV file created above. Be sure to click on the link below to explore the visualization.</p>
+<p><a href="https://public.tableau.com/profile/vijay.balasubramaniam#!/vizhome/02_CabDriver/PickupZonesWithMaxTips">Pickup Zones With Max Tips</a> - The most tips are earned at LaGuardia and JFK airports, as indicated by the bubble sizes. The bubble colors indicate the number of rides (darker = more rides)</p>
 <p>This visualization was created in Tableau as follows:</p>
 
-<pre><code>Chart type: Treemap
-Labels: Dropoff Zone
+<pre><code>Marks: Circle
+Labels: Pickup Zone
 Colors: SUM(Ridecount)
-Color Palette: Sunrise-Sunset Diverging
-Size: SUM(Ridecount)</code></pre>
-<p><a href="https://public.tableau.com/profile/vijay.balasubramaniam#!/vizhome/01_Tourist_Resident/PopularZonesByHour">Popular Zones By Hour</a> - Traffic to Midtown Center and Midtown East is highest in the mornings around 7-8am, possibly due to the concentration of office buildings. Traffic to Times Square and Murray Hill peaks in the evenings, indicating they are popular destinations for nightlife. Remember, the city never sleeps!</p>
-<p>This visualization was created in Tableau as follows:</p>
-
-<pre><code>Chart type: Bar
-Columns: Dropoff Zone, Hour
-Rows: SUM(Ridecount)
-Color Palette: Blue-Teal
-Filters: Dropoff Zone (to eliminate nulls)</code></pre>
-<p><a href="https://public.tableau.com/profile/vijay.balasubramaniam#!/vizhome/01_Tourist_Resident/PopularZonesByWeekday">Popular Zones By Weekday</a> - Wednesdays and Thursdays see the most amount of taxi activity. This is consistent across almost all zones</p>
-<p>This visualization was created in Tableau as follows:</p>
-
-<pre><code>Chart type: Bar
-Columns: Dropoff Zone, Weekday
-Rows: SUM(Ridecount)
-Colors: Weekday
 Color Palette: Automatic
-Filters: Dropoff Zone (to eliminate nulls)</code></pre>
+Size: SUM(Tips)
+Detail: MEDIAN(Avg Trip Duration), MEDIAN(Total Amount), MEDIAN(Tip Amount)</code></pre>
 <p>Note that Tableau Public is a free tool, and you can download the Tableau workbook using the above links and explore on your own if you wish.</p>
 
 </div>

@@ -1,3 +1,5 @@
 # vbalasu.github.io
 
-This is the home page (*README.md*)
+You can access the website at https://vbalasu.github.io
+
+This serves up index.html

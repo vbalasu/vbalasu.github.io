@@ -1,9 +1,3 @@
-# Home
+# Vijay Balasubramaniam's Knowledge Base
 
-This is the home page
-* It was created using markdown
-* It was converted to html using pandoc
-
-```bash
-pandoc -s -o index.html index.md
-```
+[How to launch Jupyter in a secure container](jupyter_container/index.html)

@@ -5,6 +5,6 @@ if [ $# -eq 0 ]
   then
     echo "No arguments supplied"
   else
-    pandoc -s -o $1.html $1.md
+    pandoc --css pandoc.css -s -o $1.html $1.md
     echo "$1.html is ready!"
 fi

@@ -1,0 +1,56 @@
+I"<p>Conversations - The Next Frontier Of Computing
+Published on February 4, 2017
+Edit article
+View stats
+Vijay BalasubramaniamStatus is online
+Vijay Balasubramaniam
+Technology and Finance Leader | Director, Partner Solutions Architect at Trifacta
+4 articles
+What if interacting with technology were as easy and fun as having a coffee-table conversation with a friend?</p>
+
+<p>We are entering a bold new era of computing, where conversations form the bedrock of human-computer interaction. A wave of new technologies is enabling this paradigm shift. The basic idea is that we engage with technology by having an interactive dialogue. Through this dialogue, you communicate your interests and needs, and the technology magically “makes it happen”.</p>
+
+<p>Enough talk! Let me show you a video of a basic chatbot I created to demonstrate the concept.</p>
+
+<p>You can also access the chatbot directly at the following link:</p>
+
+<p>http://tinyurl.com/CloudConversation
+Did you try the above example? If so, you will notice a few differences right off the bat:</p>
+
+<p>In contrast with a traditional website with 20+ things to click on, you are presented with a single prompt.
+The conversation is personalized. I ask you for your name, and during subsequent interactions I address you by name.
+Each subsequent exchange builds upon the previous interaction, until I have enough information to deliver something of value to you (in this case, a link to a weather report).
+Hang On, Isn’t This Just A Command Line Interface?
+Indeed, this bare-bones example of conversational computing has some striking similarities to the trusty old command prompt that was in vogue before the advent of graphical user interfaces. Conversational computing builds on the basic idea of a Read-Evaluate-Print Loop (REPL) found in interactive command shells such as bash (unix) or the DOS/Windows command shell.</p>
+
+<p>However, conversational computing today has several new enabling technologies that fundamentally alter the human-computer interaction:</p>
+
+<p>Natural language processing - This eliminates the need for you to memorize complex commands and their syntax. Great strides have been made during the past decade in terms of computers being able to understand your intent based on what you say in plain English (or any other language for that matter).
+Voice recognition - Why type when you can talk? Voice recognition technology has come a long way in the past few years, and can reliably interpret different accents and speaking styles in several languages.
+Conversational memory and machine learning - Computers are getting increasingly better at remembering the context of a conversation. Computers can use context to fill in the gaps in subsequent interactions. Additionally, machine learning algorithms can anticipate your needs before you even express them.
+Text to speech - This is the counterpart to voice recognition. Unlike the robotic monotones of the past, modern text-to-speech engines provide a remarkably natural-sounding voice with ample vocal variety.
+Cloud Computing - In your grandfather’s command line interface, you were usually talking to a single computer. Modern cloud architectures bring the ability to harness the power of giant data centers and tap into infinite databases all over the world in the context of a simple conversation.
+HTML5 and Event-driven Architecture - HTML5 has introduced web sockets which enables two-way communications between the web server and the client. Both the client and the server can respond to each other’s events, leading to a much better user experience.
+Where Is This Technology Headed, and How Can It Benefit Me?
+We are already witnessing the advent of conversational computing. This was initially in the form of digital assistants on your desktop or mobile device - i.e. Apple’s Siri, Microsoft’s Cortana and Google Now. The latest wave consists of smart home devices including Amazon Echo (Alexa) and Google Home that are entering your living room and kitchen.</p>
+
+<p>In the future, we will see conversational computing being used to build ever more immersive experiences. With the Internet of Things, you will be able to talk to devices all around you and get them to do your bidding. The advent of Virtual Reality and Augmented Reality will present even more opportunities to have conversations with things in your environment (whether real or virtual).</p>
+
+<p>“Conversations as a platform are in the same category as past paradigm shifts like the graphical user interface, the web browser and the iPhone-driven adoption of the touchscreen.” -Satya Nadella, Microsoft CEO
+We will also see the increased use of Avatars, which give a face and personality to a computer and make it more natural for humans to interact with. Avatars can range from simple cartoon characters to glorious 3D Hollywood magic that simulates real people. Expect these Avatars to pop up in mobile screens and a VR/AR experience near you. They can be hugely beneficial “coaches” that can help you step-by-step by having guided conversations with you on any topic.</p>
+
+<p>Conversations lend themselves well to scripting. Just as you can write a script for a play, or a shell script to automate Unix/Windows commands, you can develop scripts for conversations. In the future, we will see several advancements in the ability to have scripted conversations. Companies will build knowledge bases of scripts to automate common customer interactions (think call center scripts). We will see significant displacement of human labor in this area, where robots take over from human call-center operators.</p>
+
+<p>Scripted conversations have great potential for automating everything in your daily life. There are already tools such as IFTTT that listen to specific events in your environment and execute actions in response to them. Scripted conversations can take that to a whole new level, and provide full-blown business process automation with complex branching logic, workflow and decision-making capabilities. The possibilities are endless!</p>
+
+<p>Conversational computing, if done right, holds the promise to pass the Turing test.</p>
+
+<p>The Turing test is a test, developed by Alan Turing in 1950, of a machine’s ability to exhibit intelligent behavior equivalent to, or indistinguishable from, that of a human. -Wikipedia
+In fact, we aren’t far from the day we will have a coffee table conversation with…</p>
+
+<p>the coffee table!</p>
+
+<p>Author’s notes:</p>
+
+<p>I would love to hear your feedback about this article or the demo (see link above). Please add a comment or feel free to send me a personal message. Thank you!</p>
+:ET

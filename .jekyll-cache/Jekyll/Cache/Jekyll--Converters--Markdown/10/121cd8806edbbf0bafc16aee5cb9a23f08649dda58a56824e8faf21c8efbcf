@@ -1,0 +1,14 @@
+I"'<h1 id="how-to-launch-jupyter-in-a-secure-container">How to launch Jupyter in a secure container</h1>
+
+<p>The following command launches a docker container that runs a Jupyter notebook with a data science stack.</p>
+
+<p>The container is launched on port 8888 in a secure manner. HTTPS encryption is enabled by specifying a key and cert. Password authentication is also enabled. You can change the password by running <code class="highlighter-rouge">jupyter notebook password</code> to generate a sha1 password hash.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker run <span class="nt">-d</span> <span class="nt">-p</span> 8888:8888 <span class="se">\</span>
+    <span class="nt">-v</span> /.certs:/etc/ssl/notebook <span class="se">\</span>
+    jupyter/scipy-notebook start-notebook.sh <span class="se">\</span>
+    <span class="nt">--NotebookApp</span>.keyfile<span class="o">=</span>/etc/ssl/notebook/notebook.key <span class="se">\</span>
+    <span class="nt">--NotebookApp</span>.certfile<span class="o">=</span>/etc/ssl/notebook/notebook.crt <span class="se">\</span>
+    <span class="nt">--NotebookApp</span>.password<span class="o">=</span><span class="s1">'sha1:92d984ec831d:5b7265f42d5085e35ebf7cb6ecec4b76ba0aaa27'</span>
+</code></pre></div></div>
+:ET

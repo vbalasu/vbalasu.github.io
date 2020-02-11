@@ -1,4 +1,8 @@
-# How to launch Jupyter in a secure container
+---
+layout: post
+title: "How to launch Jupyter in a secure container"
+date: 2019-12-15
+---
 
 The following command launches a docker container that runs a Jupyter notebook with a data science stack.
 
